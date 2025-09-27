@@ -5,7 +5,7 @@
 //  Created by Keitiely Silva Viana on 26/09/25.
 //
 
-import Foundation
+import AVFoundation
 import SoundAnalysis
 
 
