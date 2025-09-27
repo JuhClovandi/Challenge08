@@ -4,6 +4,7 @@
 // https://docs.swift.org/swift-book
 import Foundation
 import AVFoundation // Importa o framework de Áudio e Vídeo
+import SoundAnalysis 
 
 public class SoundAnalyzer {
     // Propriedade para a "máquina de áudio"
@@ -14,11 +15,8 @@ public class SoundAnalyzer {
     public func startAnalysing(){
         //implementar depois
         print("start chamando ainda sem audio..")
-        
         //pedindo permissao para usar o microfone
-        AVAudioSession.sharedInstance().requestRecordPermission { granted in
-            
-            
+        AVAudioSession.sharedInstance().requestRecordPermission { granted in //requestRecordPermission garante que vai ter o alerta de permissao
             DispatchQueue.main.async {
                 if granted {
                     print("Permissão de microfone concedida.")
@@ -30,4 +28,5 @@ public class SoundAnalyzer {
         }
     }
     
+  
 }
