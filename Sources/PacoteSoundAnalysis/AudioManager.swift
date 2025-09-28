@@ -100,7 +100,7 @@ private class ResultsObserver: NSObject, SNResultsObserving {
         //confianca do som
         let confidence = String(format: "%.2f%%", best.confidence * 100)
         print(" Som detectado: \(best.identifier) | Confiança: \(confidence)")
-        if best.identifier == "finger_snapping" && best.confidence > 0.6 {
+        if best.identifier == "finger_snapping" && best.confidence > 0.7 {
             publisher.send()
         }
     }
