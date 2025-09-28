@@ -52,12 +52,12 @@ struct SuaView: View {
             Text("Aguardando estalo...")
         }
         .onAppear {
-            try? audioManager.startListeningForEstalos {
+            try? audioManager.startListeningForEstalos { //inicio de estalo
                 print("👏 Estalo detectado!")
             }
         }
         .onDisappear {
-            audioManager.stop()
+            audioManager.stop() //fim estalo
         }
     }
 }
