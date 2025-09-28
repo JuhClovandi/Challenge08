@@ -5,89 +5,105 @@
 //  Created by Keitiely Silva Viana on 26/09/25.
 //
 
-import AVFoundation
-import SoundAnalysis
+
+import Foundation
+@preconcurrency import AVFoundation
+@preconcurrency import SoundAnalysis
+import Combine
 
 
+/// Compatível com iOS 15+
 @available(iOS 15.0, *)
-@MainActor
-public class AudioManager {
-    public let audioEngine = AVAudioEngine()
-    private var streamAnalyzer: SNAudioStreamAnalyzer? // Analisador de áudio
-    private let analysisQueue = DispatchQueue(label: "com.pacote.analysisQueue") // Fila para análise
-    
-    private let observer = AudioAnalysisObserver() // Observador de resultados
-    
-    
-    
+public class AudioManager: ObservableObject {
+
+    private let snapPublisher = PassthroughSubject<Void, Never>()
+    private var snapSubscription: AnyCancellable?
+
+    private let audioEngine = AVAudioEngine()
+    private var streamAnalyzer: SNAudioStreamAnalyzer?
+    private let analysisQueue = DispatchQueue(label: "com.pacote.analysisQueue")
+    private var resultsObserver: ResultsObserver?
+
     public init() {}
+
     
     /// Inicia a captura e análise de áudio
-    /// Compatível com iOS 13+
-    @available(iOS 15.0, *)
-    public func startListeningForEstalos(callback: @escaping () -> Void) throws {
-        self.observer.onSnapDetected = callback
-        
-        let inputNode = audioEngine.inputNode //inputNode esse é omicrofone
-        let format = inputNode.inputFormat(forBus: 0)
-        
-        //checagem de versao pois o snaudiostremanalyzer so existe pra o ios 13
-        // Checagem de versão
-        // Inicializa o analisador de áudio
-        let analyzer = SNAudioStreamAnalyzer(format: format)
-        streamAnalyzer = analyzer
-            
-        // Cria o pedido de classificação de som
+    /// Inicia o monitor de estalos. O monitor continuará ativo até que `pararMonitor()` seja chamado.
+    /// - Parameter onEstalo: O bloco de código a ser executado a CADA estalo detectado.
+    public func iniciarMonitor(onEstalo: @escaping () -> Void) {
         do {
-            let request = try SNClassifySoundRequest(classifierIdentifier: .version1)
-            try analyzer.add(request, withObserver: observer)
+            try startListening()
         } catch {
-            print("Erro ao adicionar request: \(error.localizedDescription)")
+            print("Falha ao iniciar o motor de áudio: \(error.localizedDescription)")
+            return
         }
-        // Guarda a fila de análise em uma variável local para evitar capturar 'self'
+        
+        snapSubscription = snapPublisher
+            .receive(on: RunLoop.main)
+            .sink {
+                // Apenas executa a ação do usuário. O monitor NÃO para.
+                onEstalo()
+            }
+        
+        print(" Monitor de estalos iniciado. Ficará ativo até ser parado.")
+    }
+     
+    /// Para completamente o monitor de estalos e desliga o microfone.
+    public func pararMonitor() {
+        stopListening()
+        snapSubscription?.cancel()
+        snapSubscription = nil
+        print(" Monitor de estalos finalizado.")
+    }
+    
+    // As funções abaixo são detalhes internos do pacote.
+    private func startListening() throws {
+      
+        resultsObserver = ResultsObserver(publisher: snapPublisher)
+        let inputNode = audioEngine.inputNode
+        let format = inputNode.inputFormat(forBus: 0)
+        let streamAnalyzer = SNAudioStreamAnalyzer(format: format)
+        self.streamAnalyzer = streamAnalyzer
+        do {
+            let request = try SNClassifySoundRequest(classifierIdentifier: .version1) //utilizando o SNClassifySoundRequest
+            try streamAnalyzer.add(request, withObserver: resultsObserver!)
+        } catch { throw error }
         let analysisQueue = self.analysisQueue
-        // Instala um "tap" no microfone para capturar buffers de áudio
-        inputNode.installTap(onBus: 0, bufferSize: 4096, format: format) {buffer, when in
-                analyzer.analyze(buffer, atAudioFramePosition: when.sampleTime)
+        inputNode.installTap(onBus: 0, bufferSize: 4096, format: format) { buffer, time in
+            analysisQueue.async {
+                streamAnalyzer.analyze(buffer, atAudioFramePosition: time.sampleTime)
+            }
         }
-        // Prepara e inicia o motor de áudio
         audioEngine.prepare()
         try audioEngine.start()
     }
-    
-    /// Para a captura de áudio
-    public func stop() {
+
+    private func stopListening() {
+   
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
+        streamAnalyzer?.removeAllRequests()
         streamAnalyzer = nil
+        resultsObserver = nil
     }
 }
 
+
 @available(iOS 15.0, *)
-@MainActor
-final class AudioAnalysisObserver: NSObject, SNResultsObserving {
-    
-    var onSnapDetected: (() -> Void)?
-    
-    nonisolated func request(_ request: SNRequest, didProduce result: SNResult) {
+private class ResultsObserver: NSObject, SNResultsObserving {
+   
+    let publisher: PassthroughSubject<Void, Never>
+    init(publisher: PassthroughSubject<Void, Never>) { self.publisher = publisher }
+    func request(_ request: SNRequest, didProduce result: SNResult) {
+        guard let result = result as? SNClassificationResult, let best = result.classifications.first else { return }
         
-        guard let result = result as? SNClassificationResult,
-              let bestClassification = result.classifications.first else { return }
-        
-        // Exemplo de como você vai usar o callback no próximo passo:
-        if bestClassification.identifier == "FingerSnap" && bestClassification.confidence > 0.7 {
-            print("Estalo detectado com confiança alta!")
-            // Chama a função que foi passada!
-            DispatchQueue.main.async {
-                self.onSnapDetected?()
-            }
+        //confianca do som
+        let confidence = String(format: "%.2f%%", best.confidence * 100)
+        print(" Som detectado: \(best.identifier) | Confiança: \(confidence)")
+        if best.identifier == "finger_snapping" && best.confidence > 0.6 {
+            publisher.send()
         }
     }
-    nonisolated  func request(_ request: SNRequest, didFailWithError error: Error) {
-        print("A análise falhou com o erro: \(error.localizedDescription)")
-    }
-    
-    nonisolated  func requestDidComplete(_ request: SNRequest) {
-        print("A análise foi completada.")
-    }
+    func request(_ request: SNRequest, didFailWithError error: Error) {}
+    func requestDidComplete(_ request: SNRequest) {}
 }

@@ -23,7 +23,7 @@ let package = Package(
         .target(
             name: "PacoteSoundAnalysis",
             dependencies: [],
-            //linkar os frameworks da aple
+            //link dos frameworks da aple
             linkerSettings: [
                 .linkedFramework("AVFoundation"),
                 .linkedFramework("SoundAnalysis"),
