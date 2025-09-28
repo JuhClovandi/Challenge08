@@ -30,13 +30,14 @@ Adicione o pacote ao seu projeto via **Swift Package Manager**:
 ## ⚠️ Permissão obrigatória
 Seu app precisa da permissão de **microfone**.  
 No arquivo `Info.plist`, adicione:
-```xml
-<key>NSMicrophoneUsageDescription</key>
-<string>Este app utiliza o microfone para detectar sons e executar ações por comando de áudio.</string>
+
+```
+**NSMicrophoneUsageDescription**
+Descrição: Este app utiliza o microfone para detectar sons e executar ações por comando de áudio.
 ```
 ---
 
-## 🚀 Como usar
+## Como usar
 
 Exemplo em **SwiftUI**:
 
