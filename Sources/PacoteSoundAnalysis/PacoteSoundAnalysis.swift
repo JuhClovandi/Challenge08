@@ -13,7 +13,7 @@ public class SoundAnalyzer {
     public init(){}
     
     public func startAnalysing(){
-        //implementar depois
+    
         print("start chamando ainda sem audio..")
         //pedindo permissao para usar o microfone
         AVAudioSession.sharedInstance().requestRecordPermission { granted in //requestRecordPermission garante que vai ter o alerta de permissao

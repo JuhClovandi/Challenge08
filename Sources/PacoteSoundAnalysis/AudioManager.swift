@@ -47,7 +47,7 @@ public class AudioManager: ObservableObject {
         
         print(" Monitor de estalos iniciado. Ficará ativo até ser parado.")
     }
-     
+      
     /// Para completamente o monitor de estalos e desliga o microfone.
     public func pararMonitor() {
         stopListening()
@@ -100,10 +100,11 @@ private class ResultsObserver: NSObject, SNResultsObserving {
         //confianca do som
         let confidence = String(format: "%.2f%%", best.confidence * 100)
         print(" Som detectado: \(best.identifier) | Confiança: \(confidence)")
-        if best.identifier == "finger_snapping" && best.confidence > 0.7 {
+        if best.identifier == "whistling" && best.confidence > 0.8 {
             publisher.send()
         }
     }
+    
     func request(_ request: SNRequest, didFailWithError error: Error) {}
     func requestDidComplete(_ request: SNRequest) {}
 }
