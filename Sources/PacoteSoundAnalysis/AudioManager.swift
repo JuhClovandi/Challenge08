@@ -12,7 +12,7 @@ import Foundation
 import Combine
 
 
-/// Compatível com iOS 15+
+/// Classe principal que permite escutar e classificar os sons.
 @available(iOS 15.0, *)
 public class AudioManager: ObservableObject {
 
@@ -29,8 +29,9 @@ public class AudioManager: ObservableObject {
     
     /// Inicia a captura e análise de áudio
     /// Inicia o monitor de estalos. O monitor continuará ativo até que `pararMonitor()` seja chamado.
-    /// - Parameter onEstalo: O bloco de código a ser executado a CADA estalo detectado.
-    public func iniciarMonitor(onEstalo: @escaping () -> Void) {
+    /// - Parameter onDetection: O bloco de código a ser executado a detecção do som especificado.
+    /// - Parameter classification: String que indica qual som para detectar
+    public func iniciarMonitor(onDetection: @escaping () -> Void, classification: String = "finger_snapping") {
         do {
             try startListening()
         } catch {
@@ -42,13 +43,13 @@ public class AudioManager: ObservableObject {
             .receive(on: RunLoop.main)
             .sink {
                 // Apenas executa a ação do usuário. O monitor NÃO para.
-                onEstalo()
+                onDetection()
             }
         
         print(" Monitor de estalos iniciado. Ficará ativo até ser parado.")
     }
      
-    /// Para completamente o monitor de estalos e desliga o microfone.
+    /// Para completamente o monitor de som e desliga o microfone.
     public func pararMonitor() {
         stopListening()
         snapSubscription?.cancel()
@@ -56,10 +57,11 @@ public class AudioManager: ObservableObject {
         print(" Monitor de estalos finalizado.")
     }
     
-    // As funções abaixo são detalhes internos do pacote.
-    private func startListening() throws {
+    /// Inicia o microfone e comeca a analisar o som
+    /// - Parameter classification: String que indica qual som para detectar
+    private func startListening(classification: String = "finger_snapping") throws {
       
-        resultsObserver = ResultsObserver(publisher: snapPublisher)
+        resultsObserver = ResultsObserver(publisher: snapPublisher, classification: classification)
         let inputNode = audioEngine.inputNode
         let format = inputNode.inputFormat(forBus: 0)
         let streamAnalyzer = SNAudioStreamAnalyzer(format: format)
@@ -77,7 +79,8 @@ public class AudioManager: ObservableObject {
         audioEngine.prepare()
         try audioEngine.start()
     }
-
+    
+    /// Desliga o microfone e subsequentemente o monitor de som.
     private func stopListening() {
    
         audioEngine.stop()
@@ -88,19 +91,23 @@ public class AudioManager: ObservableObject {
     }
 }
 
-
+/// Observador de resultados utilizado pelo sound analises para reportar os sons detectados
 @available(iOS 15.0, *)
 private class ResultsObserver: NSObject, SNResultsObserving {
-   
+    var classification: String
+    
     let publisher: PassthroughSubject<Void, Never>
-    init(publisher: PassthroughSubject<Void, Never>) { self.publisher = publisher }
+    init(publisher: PassthroughSubject<Void, Never>, classification: String = "finger_snapping") {
+        self.publisher = publisher
+        self.classification = classification
+    }
     func request(_ request: SNRequest, didProduce result: SNResult) {
         guard let result = result as? SNClassificationResult, let best = result.classifications.first else { return }
         
         //confianca do som
         let confidence = String(format: "%.2f%%", best.confidence * 100)
         print(" Som detectado: \(best.identifier) | Confiança: \(confidence)")
-        if best.identifier == "finger_snapping" && best.confidence > 0.7 {
+        if best.identifier == classification && best.confidence > 0.7 {
             publisher.send()
         }
     }
