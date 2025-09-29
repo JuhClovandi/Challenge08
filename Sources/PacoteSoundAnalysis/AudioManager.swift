@@ -19,6 +19,7 @@ public class AudioManager: ObservableObject {
     private let snapPublisher = PassthroughSubject<Void, Never>()
     private var snapSubscription: AnyCancellable?
 
+    
     private let audioEngine = AVAudioEngine()
     private var streamAnalyzer: SNAudioStreamAnalyzer?
     private let analysisQueue = DispatchQueue(label: "com.pacote.analysisQueue")
@@ -31,9 +32,9 @@ public class AudioManager: ObservableObject {
     /// Inicia o monitor de estalos. O monitor continuará ativo até que `pararMonitor()` seja chamado.
     /// - Parameter onDetection: O bloco de código a ser executado a detecção do som especificado.
     /// - Parameter classification: String que indica qual som para detectar
-    public func iniciarMonitor(onDetection: @escaping () -> Void, classification: String = "finger_snapping") {
+    public func iniciarMonitor(onDetection: @escaping () -> Void, classification: String?) {
         do {
-            try startListening()
+            try startListening(classification: classification)
         } catch {
             print("Falha ao iniciar o motor de áudio: \(error.localizedDescription)")
             return
@@ -59,9 +60,9 @@ public class AudioManager: ObservableObject {
     
     /// Inicia o microfone e comeca a analisar o som
     /// - Parameter classification: String que indica qual som para detectar
-    private func startListening(classification: String = "finger_snapping") throws {
+    private func startListening(classification: String?) throws {
       
-        resultsObserver = ResultsObserver(publisher: snapPublisher, classification: classification)
+        resultsObserver = ResultsObserver(publisher: snapPublisher, classification: classification ?? "whistling")
         let inputNode = audioEngine.inputNode
         let format = inputNode.inputFormat(forBus: 0)
         let streamAnalyzer = SNAudioStreamAnalyzer(format: format)
@@ -97,7 +98,7 @@ private class ResultsObserver: NSObject, SNResultsObserving {
     var classification: String
     
     let publisher: PassthroughSubject<Void, Never>
-    init(publisher: PassthroughSubject<Void, Never>, classification: String = "finger_snapping") {
+    init(publisher: PassthroughSubject<Void, Never>, classification: String = "whistling") {
         self.publisher = publisher
         self.classification = classification
     }
