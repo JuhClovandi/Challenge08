@@ -46,6 +46,8 @@ import SwiftUI
 import PacoteSoundAnalysis
 
 struct SuaView: View {
+
+    // Cria um objeto para monitorar o audio.
     @StateObject private var audioManager = AudioManager()
 
     var body: some View {
@@ -53,12 +55,16 @@ struct SuaView: View {
             Text("Aguardando estalo...")
         }
         .onAppear {
-            try? audioManager.startListeningForEstalos { //inicio de estalo
-                print("👏 Estalo detectado!")
+        
+            // Executa a função responsavel por analisar o áudio
+            audioManager.iniciarMonitor(onEstalo{ 
+            // Seu codigo aqui
+            print("Estralo detectado")
+                })
             }
         }
         .onDisappear {
-            audioManager.stop() //fim estalo
+            audioManager.pararMonitor() //Desliga o monitor de audio
         }
     }
 }
