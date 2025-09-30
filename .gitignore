@@ -8,6 +8,9 @@ xcuserdata/
 ## Obj-C/Swift specific
 *.hmap
 
+## swiftpm
+.swiftpm/
+
 ## App packaging
 *.ipa
 *.dSYM.zip
