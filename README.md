@@ -46,19 +46,23 @@ import SwiftUI
 import PacoteSoundAnalysis
 
 struct SuaView: View {
+
+    // Cria um objeto para monitorar o audio.
     @StateObject private var audioManager = AudioManager()
 
     var body: some View {
         VStack {
-            Text("Aguardando estalo...")
+            Text("Aguardando som")
         }
         .onAppear {
-            try? audioManager.startListeningForEstalos { //inicio de estalo
-                print("👏 Estalo detectado!")
-            }
+            // Inicia o detector de som
+            try? audioManager.iniciarMonitor (onDetect{
+                print("Som detectado")
+            }, classification: "guitar") // Classification recebe uma string com qual som voce deseja monitorar.
+            )
         }
         .onDisappear {
-            audioManager.stop() //fim estalo
+            audioManager.pararMonitor() // Finaliza a deteccao de som.
         }
     }
 }
