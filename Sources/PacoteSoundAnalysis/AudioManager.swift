@@ -100,9 +100,11 @@ private class ResultsObserver: NSObject, SNResultsObserving {
     
     /// Declara um publisher para que possa enviar
     let publisher: PassthroughSubject<Void, Never>
-    init(publisher: PassthroughSubject<Void, Never>, classification: String = "finger_snapping") {
+    
+    /// Initializer da classe
+    init(publisher: PassthroughSubject<Void, Never>, classification: String?) {
         self.publisher = publisher
-        self.classification = classification
+        self.classification = classification ?? "finger_snapping"
     }
     func request(_ request: SNRequest, didProduce result: SNResult) {
         guard let result = result as? SNClassificationResult, let best = result.classifications.first else { return }
