@@ -56,15 +56,22 @@ struct SuaView: View {
         }
         .onAppear {
             // Inicia o detector de som
-            try? audioManager.iniciarMonitor (onDetect{
-                print("Som detectado")
-            }, classification: "guitar") // Classification recebe uma string com qual som voce deseja monitorar.
-            )
+             audioManager.iniciarMonitor(onDetection: {
+                
+                // 1. Muda a cor para verde
+                self.backgroundColor = .green
+                
+                // 3. Agenda a cor para voltar ao normal após 3 segundos
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    self.backgroundColor = .gray
+                }
+            } , classification: "whistling")
         }
         .onDisappear {
-            audioManager.pararMonitor() // Finaliza a deteccao de som.
+            // A garantia de que o monitor para quando a tela fecha continua aqui.
+            // Isso é muito importante para economizar bateria.
+            audioManager.pararMonitor()
         }
-    }
 }
 ```
 ## 🛠 Frameworks Utilizados
